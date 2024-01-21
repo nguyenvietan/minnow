@@ -13,7 +13,7 @@
 class ExpectationViolation : public std::runtime_error
 {
 public:
-  static constexpr std::string boolstr( bool b ) { return b ? "true" : "false"; }
+  static constexpr const char* boolstr( bool b ) { return b ? "true" : "false"; }
 
   explicit ExpectationViolation( const std::string& msg ) : std::runtime_error( msg ) {}
 
