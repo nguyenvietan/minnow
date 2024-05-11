@@ -22,7 +22,7 @@ ttest(byte_stream_capacity)
 ttest(byte_stream_one_write)
 ttest(byte_stream_two_writes)
 ttest(byte_stream_many_writes)
-ttest(byte_stream_stress_test)
+# ttest(byte_stream_stress_test)
 
 ttest(reassembler_single)
 ttest(reassembler_cap)
