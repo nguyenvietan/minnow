@@ -89,6 +89,7 @@ void speed_test( const size_t input_len,   // NOLINT(bugprone-easily-swappable-p
 void program_body()
 {
   speed_test( 1e7, 32768, 789, 1500, 128 );
+  // speed_test( 20, 1000, 789, 100, 50 );
 }
 
 int main()
