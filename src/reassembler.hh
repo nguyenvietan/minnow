@@ -1,6 +1,8 @@
 #pragma once
 
 #include "byte_stream.hh"
+#include <map>
+#include <vector>
 
 class Reassembler
 {
@@ -41,5 +43,27 @@ public:
   const Writer& writer() const { return output_.writer(); }
 
 private:
+  class BString
+  {
+  public:
+    bool is_last_substring {};
+    std::string data {};
+    BString()
+    {
+      is_last_substring = false;
+      data = std::string( "" );
+    }
+    BString( std::string d, bool is ) : is_last_substring( is ), data( std::move( d ) ) {}
+    BString( const BString& other ) = default;
+    BString( BString&& other ) noexcept = default;
+    BString& operator=( const BString& other ) = default;
+    BString& operator=( BString&& other ) noexcept = default;
+  };
+  void flush(); //
+  void push_to_stream( uint64_t first_index, std::string data, bool is_last_substring );
+  void cache_to_buffer( uint64_t first_index, std::string data, bool is_last_substring );
+  uint64_t expectedIdx_ {};
   ByteStream output_; // the Reassembler writes to this ByteStream
+  std::map<uint64_t, BString> buffer_ {};
+  uint64_t total_bytes_pending_ {};
 };
