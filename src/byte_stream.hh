@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
+#include <queue>
 #include <string>
 #include <string_view>
-#include <deque>
 
 class Reader;
 class Writer;
@@ -24,23 +25,30 @@ public:
 
 protected:
   // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
+  // std::deque<char> stream_;
+  std::string_view preview {};
+  std::queue<std::string> stream_;
   uint64_t capacity_;
-  uint64_t total_pushed_ {};
-  uint64_t total_popped_ {};
+  uint64_t available_capacity_;
+  uint64_t total_bytes_pushed_ = 0;
+  uint64_t total_bytes_popped_ = 0;
+  bool is_closed_ = false;
   bool error_ {};
-  bool closed_ {};
-  std::deque<char> buffer_ {};
+  // std::string empty_str = "";
+  // std::vector<std::string_view> str;
 };
 
 class Writer : public ByteStream
 {
 public:
-  void push( std::string data ); // Push data to stream, but only as much as available capacity allows.
-  void close();                  // Signal that the stream has reached its ending. Nothing more will be written.
+  void push( std::string data ) noexcept; // Push data to stream, but only as much as available capacity allows.
+  void close(); // Signal that the stream has reached its ending. Nothing more will be written.
 
   bool is_closed() const;              // Has the stream been closed?
   uint64_t available_capacity() const; // How many bytes can be pushed to the stream right now?
   uint64_t bytes_pushed() const;       // Total number of bytes cumulatively pushed to the stream
+
+  uint64_t capacity() const { return capacity_; }
 };
 
 class Reader : public ByteStream
