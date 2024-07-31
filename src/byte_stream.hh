@@ -25,17 +25,13 @@ public:
 
 protected:
   // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
-  // std::deque<char> stream_;
-  std::string_view preview {};
-  std::queue<std::string> stream_;
-  uint64_t capacity_;
-  uint64_t available_capacity_;
-  uint64_t total_bytes_pushed_ = 0;
-  uint64_t total_bytes_popped_ = 0;
-  bool is_closed_ = false;
+  std::deque<std::string> deque_ {};
+  uint64_t capacity_ {};
+  uint64_t bytes_in_buffer {};
+  uint64_t total_bytes_pushed {};
+  uint64_t total_bytes_popped {};
   bool error_ {};
-  // std::string empty_str = "";
-  // std::vector<std::string_view> str;
+  bool close_ {};
 };
 
 class Writer : public ByteStream
