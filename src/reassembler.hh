@@ -1,6 +1,7 @@
 #pragma once
 
 #include "byte_stream.hh"
+#include <map>
 
 class Reassembler
 {
@@ -30,6 +31,10 @@ public:
    */
   void insert( uint64_t first_index, std::string data, bool is_last_substring );
 
+  void write_to_stream( uint64_t first_index, std::string data );
+
+  void cache_to_buffer( uint64_t first_index, std::string data );
+
   // How many bytes are stored in the Reassembler itself?
   uint64_t bytes_pending() const;
 
@@ -42,4 +47,9 @@ public:
 
 private:
   ByteStream output_; // the Reassembler writes to this ByteStream
+  uint64_t total_bytes_pending_ {};
+  uint64_t first_unassembled_index_ {};
+  uint64_t last_index_ {};
+  bool has_last_ = false;
+  std::map<uint64_t, std::string> buffer_ {};
 };
