@@ -31,10 +31,6 @@ public:
    */
   void insert( uint64_t first_index, std::string data, bool is_last_substring );
 
-  void write_to_stream( uint64_t first_index, std::string data );
-
-  void cache_to_buffer( uint64_t first_index, std::string data );
-
   // How many bytes are stored in the Reassembler itself?
   uint64_t bytes_pending() const;
 
@@ -46,6 +42,9 @@ public:
   const Writer& writer() const { return output_.writer(); }
 
 private:
+  void write_to_stream( uint64_t first_index, std::string data );
+  void cache_to_buffer( uint64_t first_index, std::string data );
+
   ByteStream output_; // the Reassembler writes to this ByteStream
   uint64_t total_bytes_pending_ {};
   uint64_t first_unassembled_index_ {};
