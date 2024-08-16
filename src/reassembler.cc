@@ -1,4 +1,5 @@
 #include "reassembler.hh"
+#include <iostream>
 
 using namespace std;
 
@@ -57,9 +58,10 @@ void Reassembler::write_to_stream( uint64_t first_index, string data )
     output_.writer().push( it->second );
     auto it0 = buffer_.begin();
     while ( it0 != it ) {
-      buffer_.erase( it0 );
       total_bytes_pending_ -= it0->second.size();
+      auto tmp = it0;
       it0++;
+      buffer_.erase( tmp );
     }
     buffer_.erase( it );
     total_bytes_pending_ -= it->second.size();
@@ -70,15 +72,19 @@ void Reassembler::write_to_stream( uint64_t first_index, string data )
       first_unassembled_index_ += data.size();
     } else {
       it--;
-      std::string next = it->second.substr( end_index - it->first );
       output_.writer().push( data );
-      output_.writer().push( next );
-      first_unassembled_index_ += data.size() + next.size();
+      first_unassembled_index_ += data.size();
+      if ( it->first < end_index && end_index < it->first + it->second.size() ) {
+        std::string next = it->second.substr( end_index - it->first );
+        output_.writer().push( next );
+        first_unassembled_index_ += next.size();
+      }
       auto it0 = buffer_.begin();
       while ( it0 != it ) {
-        buffer_.erase( it0 );
         total_bytes_pending_ -= it0->second.size();
+        auto tmp = it0;
         it0++;
+        buffer_.erase( tmp );
       }
       buffer_.erase( it );
       total_bytes_pending_ -= it->second.size();
