@@ -5,8 +5,7 @@ using namespace std;
 
 uint64_t TCPSender::sequence_numbers_in_flight() const
 {
-  // Your code here.
-  return {};
+  return cnt_seq_in_flight_;
 }
 
 uint64_t TCPSender::consecutive_retransmissions() const
@@ -17,14 +16,19 @@ uint64_t TCPSender::consecutive_retransmissions() const
 
 void TCPSender::push( const TransmitFunction& transmit )
 {
-  // Your code here.
-  (void)transmit;
+  auto message = make_empty_message();
+  message.SYN = true;
+  message.seqno = isn_;
+  transmit( message );
+  next_seqno_ += message.sequence_length();
+  cnt_seq_in_flight_++;
 }
 
 TCPSenderMessage TCPSender::make_empty_message() const
 {
-  // Your code here.
-  return {};
+  TCPSenderMessage message {};
+  message.seqno = Wrap32::wrap( next_seqno_, isn_ );
+  return message;
 }
 
 void TCPSender::receive( const TCPReceiverMessage& msg )

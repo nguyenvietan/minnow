@@ -48,4 +48,8 @@ private:
   ByteStream input_;
   Wrap32 isn_;
   uint64_t initial_RTO_ms_;
+
+  uint64_t next_seqno_ {};
+  uint64_t cnt_seq_in_flight_ {};
+  
 };
