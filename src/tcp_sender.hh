@@ -11,12 +11,28 @@
 #include <optional>
 #include <queue>
 
+class Timer
+{
+private:
+  uint64_t ms_since_beginning_ {};
+  uint64_t initial_RTO_ms_ {};
+  uint64_t cur_RTO_ms_ {};
+
+public:
+  Timer( uint64_t initial_RTO_ms ) : initial_RTO_ms_( initial_RTO_ms ), cur_RTO_ms_ { initial_RTO_ms } {};
+  void reset();
+  void set_ms_since_begining( uint64_t x );
+  void tick( uint64_t ms_since_last_tick );
+  void double_RTO();
+  bool is_timeout();
+};
+
 class TCPSender
 {
 public:
   /* Construct TCP sender with given default Retransmission Timeout and possible ISN */
   TCPSender( ByteStream&& input, Wrap32 isn, uint64_t initial_RTO_ms )
-    : input_( std::move( input ) ), isn_( isn ), initial_RTO_ms_( initial_RTO_ms )
+    : input_( std::move( input ) ), isn_( isn ), initial_RTO_ms_( initial_RTO_ms ), timer( initial_RTO_ms )
   {}
 
   /* Generate an empty TCPSenderMessage */
@@ -49,7 +65,14 @@ private:
   Wrap32 isn_;
   uint64_t initial_RTO_ms_;
 
-  uint64_t next_seqno_ {};
+  Timer timer;
+
+  uint64_t next_abs_seqno_ {};
   uint64_t cnt_seq_in_flight_ {};
-  
+  uint64_t cnt_consecutive_retx_ {};
+  uint64_t window_size_ { 1 };
+  bool sent_syn_ {};
+  bool sent_fin_ {};
+  bool is_zero_win_ {};
+  std::queue<TCPSenderMessage> buffer_ {};
 };
