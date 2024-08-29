@@ -46,6 +46,7 @@ uint64_t Reader::bytes_popped() const
 
 string_view Reader::peek() const
 {
+  if ( deque_.empty() ) return string_view {};  
   return string_view { deque_.front() };
 }
 
