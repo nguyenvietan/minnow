@@ -44,17 +44,17 @@ void TCPSender::push( const TransmitFunction& transmit )
   TCPSenderMessage msg {};
 
   auto& reader = input_.reader();
+  auto& writer = input_.writer();
 
   std::string_view content = reader.peek();
 
-  if ( reader.is_finished() && buffer_.empty() && window_size_ > 0) {
-    msg.FIN = true;
-    transmit( msg );
+  if ( content.empty() && sent_syn_ && !reader.is_finished() ) {
     return;
   }
 
-  if ( content.empty() && sent_syn_ )
+  if ( writer.is_closed() && ( !sent_syn_ + cnt_seq_in_flight_ + 1 ) > window_size_ ) {
     return;
+  }
 
   std::string sent_content = std::string( content );
 
@@ -65,6 +65,7 @@ void TCPSender::push( const TransmitFunction& transmit )
   msg.SYN = !sent_syn_;
   msg.seqno = Wrap32::wrap( next_abs_seqno_, isn_ );
   msg.payload = sent_content;
+  msg.FIN = writer.is_closed() && ( sent_content.size() + !sent_syn_ + cnt_seq_in_flight_ + 1 <= window_size_ );
   transmit( msg );
 
   sent_syn_ |= true;
