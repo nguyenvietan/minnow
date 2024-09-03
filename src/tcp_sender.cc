@@ -88,6 +88,11 @@ TCPSenderMessage TCPSender::make_empty_message() const
 void TCPSender::receive( const TCPReceiverMessage& msg )
 {
   uint64_t cur_abs_seqno = ( *msg.ackno ).unwrap( isn_, next_abs_seqno_ );
+
+  if ( cur_abs_seqno > next_abs_seqno_ ) {
+    return;
+  }
+
   while ( !buffer_.empty() ) {
     auto oldest_msg = buffer_.front();
     if ( oldest_msg.seqno.unwrap( isn_, next_abs_seqno_ ) >= cur_abs_seqno ) {
