@@ -72,5 +72,6 @@ private:
   uint64_t cnt_consecutive_retx_ {};
   uint64_t window_size_ { UINT64_MAX };
   bool sent_syn_ {};
+  bool sent_fin_ {};
   std::queue<TCPSenderMessage> buffer_ {};
 };

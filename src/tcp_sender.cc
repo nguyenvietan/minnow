@@ -48,11 +48,18 @@ void TCPSender::push( const TransmitFunction& transmit )
 
   std::string_view content = reader.peek();
 
+  // TODO: double check this condition
   if ( content.empty() && sent_syn_ && !reader.is_finished() ) {
     return;
   }
 
+  // cannot send FIN because of exceeding window_size
   if ( writer.is_closed() && ( !sent_syn_ + cnt_seq_in_flight_ + 1 ) > window_size_ ) {
+    return;
+  }
+
+  // do not send message once FIN has already been sent
+  if ( content.empty() && sent_fin_ ) {
     return;
   }
 
@@ -68,7 +75,8 @@ void TCPSender::push( const TransmitFunction& transmit )
   msg.FIN = writer.is_closed() && ( sent_content.size() + !sent_syn_ + cnt_seq_in_flight_ + 1 <= window_size_ );
   transmit( msg );
 
-  sent_syn_ |= true;
+  sent_syn_ |= msg.SYN;
+  sent_fin_ |= msg.FIN;
 
   buffer_.emplace( msg );
   next_abs_seqno_ += msg.sequence_length();
