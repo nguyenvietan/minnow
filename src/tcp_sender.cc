@@ -101,6 +101,7 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
     return;
   }
 
+  bool has_popped = false;
   while ( !buffer_.empty() ) {
     auto oldest_msg = buffer_.front();
     if ( oldest_msg.seqno.unwrap( isn_, next_abs_seqno_ ) >= cur_abs_seqno ) {
@@ -108,10 +109,13 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
     }
     cnt_seq_in_flight_ -= oldest_msg.sequence_length();
     buffer_.pop();
+    has_popped = true;
   }
   window_size_ = msg.window_size;
-  timer.reset();
-  cnt_consecutive_retx_ = 0;
+  if ( has_popped ) {
+    timer.reset();
+    cnt_consecutive_retx_ = 0;
+  }
 }
 
 void TCPSender::tick( uint64_t ms_since_last_tick, const TransmitFunction& transmit )
