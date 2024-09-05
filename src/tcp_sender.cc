@@ -102,6 +102,11 @@ TCPSenderMessage TCPSender::make_empty_message() const
 
 void TCPSender::receive( const TCPReceiverMessage& msg )
 {
+  if ( !msg.ackno.has_value() ) { // send_close.cc: "SYN + FIN"
+    window_size_ = msg.window_size > 0 ? msg.window_size : window_size_;
+    return;
+  }
+
   uint64_t cur_abs_seqno = ( *msg.ackno ).unwrap( isn_, next_abs_seqno_ );
 
   if ( cur_abs_seqno > next_abs_seqno_ ) {
