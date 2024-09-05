@@ -70,7 +70,7 @@ private:
   uint64_t next_abs_seqno_ {};
   uint64_t cnt_seq_in_flight_ {};
   uint64_t cnt_consecutive_retx_ {};
-  uint64_t window_size_ { UINT64_MAX };
+  uint64_t window_size_ { 1 };
   bool sent_syn_ {};
   bool sent_fin_ {};
   std::queue<TCPSenderMessage> buffer_ {};

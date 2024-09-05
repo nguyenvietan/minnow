@@ -1,5 +1,7 @@
-#include "tcp_sender.hh"
+#include <iostream>
+
 #include "tcp_config.hh"
+#include "tcp_sender.hh"
 
 using namespace std;
 
@@ -46,44 +48,49 @@ void TCPSender::push( const TransmitFunction& transmit )
   auto& reader = input_.reader();
   auto& writer = input_.writer();
 
-  std::string_view content = reader.peek();
+  for ( ;; ) {
+    std::string payload = "";
 
-  // TODO: double check this condition
-  if ( content.empty() && sent_syn_ && !reader.is_finished() ) {
-    return;
+    while ( !reader.peek().empty() && payload.size() < min( TCPConfig::MAX_PAYLOAD_SIZE, window_size_ ) ) {
+      std::string_view content = reader.peek();
+      std::string add = std::string( content );
+      int diff = (int)payload.size() + content.size() - min( TCPConfig::MAX_PAYLOAD_SIZE, window_size_ );
+      if ( diff >= 0 ) {
+        add = add.substr( 0, add.size() - diff );
+      }
+      payload += add;
+      reader.pop( add.size() );
+    }
+
+    if ( payload.empty() && sent_syn_ && !writer.is_closed() )
+      break;
+
+    if ( payload.empty() && writer.is_closed() && window_size_ == 0 ) // FIN flag occupies space in window
+      break;
+
+    if ( payload.empty() && sent_fin_ ) {
+      break;
+    }
+
+    msg.SYN = !sent_syn_;
+    msg.seqno = Wrap32::wrap( next_abs_seqno_, isn_ );
+    msg.payload = payload;
+    msg.FIN = writer.is_closed() && ( payload.size() + !sent_syn_ + cnt_seq_in_flight_ + 1 <= window_size_ );
+
+    transmit( msg );
+
+    sent_syn_ |= msg.SYN;
+    sent_fin_ |= msg.FIN;
+
+    buffer_.emplace( msg );
+    next_abs_seqno_ += msg.sequence_length();
+    cnt_seq_in_flight_ += msg.sequence_length();
+
+    window_size_ -= msg.sequence_length();
+
+    if ( window_size_ == 0 )
+      break;
   }
-
-  // cannot send FIN because of exceeding window_size
-  if ( writer.is_closed() && ( !sent_syn_ + cnt_seq_in_flight_ + 1 ) > window_size_ ) {
-    return;
-  }
-
-  // do not send message once FIN has already been sent
-  if ( content.empty() && sent_fin_ ) {
-    return;
-  }
-
-  std::string sent_content = std::string( content );
-
-  if ( window_size_ < content.size() ) {
-    sent_content = content.substr( 0, window_size_ );
-  }
-
-  msg.SYN = !sent_syn_;
-  msg.seqno = Wrap32::wrap( next_abs_seqno_, isn_ );
-  msg.payload = sent_content;
-  msg.FIN = writer.is_closed() && ( sent_content.size() + !sent_syn_ + cnt_seq_in_flight_ + 1 <= window_size_ );
-  transmit( msg );
-
-  sent_syn_ |= msg.SYN;
-  sent_fin_ |= msg.FIN;
-
-  buffer_.emplace( msg );
-  next_abs_seqno_ += msg.sequence_length();
-  cnt_seq_in_flight_ += msg.sequence_length();
-  window_size_ -= sent_content.size();
-
-  reader.pop( sent_content.size() );
 }
 
 TCPSenderMessage TCPSender::make_empty_message() const
