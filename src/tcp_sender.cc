@@ -45,6 +45,12 @@ void TCPSender::push( const TransmitFunction& transmit )
 {
   TCPSenderMessage msg {};
 
+  if ( input_.has_error() ) {
+    msg = make_empty_message();
+    msg.RST = true;
+    transmit( msg );
+  }
+
   auto& reader = input_.reader();
   auto& writer = input_.writer();
 
@@ -102,11 +108,18 @@ TCPSenderMessage TCPSender::make_empty_message() const
 {
   TCPSenderMessage message {};
   message.seqno = Wrap32::wrap( next_abs_seqno_, isn_ );
+  if ( input_.has_error() )
+    message.RST = true;
   return message;
 }
 
 void TCPSender::receive( const TCPReceiverMessage& msg )
 {
+  if ( msg.RST ) {
+    input_.set_error();
+    return;
+  }
+
   if ( !msg.ackno.has_value() ) { // send_close.cc: "SYN + FIN"
     window_size_ = msg.window_size > 0 ? msg.window_size : window_size_;
     return;
