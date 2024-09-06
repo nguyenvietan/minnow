@@ -65,7 +65,8 @@ void TCPSender::push( const TransmitFunction& transmit )
     if ( payload.empty() && sent_syn_ && !writer.is_closed() )
       break;
 
-    if ( payload.empty() && writer.is_closed() && window_size_ == 0 ) // FIN flag occupies space in window
+    if ( payload.empty() && writer.is_closed()
+         && ( !sent_syn_ + 1 + cnt_seq_in_flight_ > window_size_ ) ) // FIN flag occupies space in window
       break;
 
     if ( payload.empty() && sent_fin_ ) {
@@ -116,14 +117,24 @@ void TCPSender::receive( const TCPReceiverMessage& msg )
   bool has_popped = false;
   while ( !buffer_.empty() ) {
     auto oldest_msg = buffer_.front();
-    if ( oldest_msg.seqno.unwrap( isn_, next_abs_seqno_ ) >= cur_abs_seqno ) {
+
+    uint64_t oldest_abs_seqno = oldest_msg.seqno.unwrap( isn_, next_abs_seqno_ );
+    if ( oldest_abs_seqno + oldest_msg.sequence_length() > cur_abs_seqno )
       break;
-    }
+
     cnt_seq_in_flight_ -= oldest_msg.sequence_length();
     buffer_.pop();
     has_popped = true;
   }
-  window_size_ = msg.window_size;
+
+  if ( msg.window_size == 0 ) {
+    window_size_ = 1;
+    is_zero_win_ = true;
+  } else {
+    window_size_ = msg.window_size;
+    is_zero_win_ = false;
+  }
+
   if ( has_popped ) {
     timer.reset();
     cnt_consecutive_retx_ = 0;
@@ -135,8 +146,9 @@ void TCPSender::tick( uint64_t ms_since_last_tick, const TransmitFunction& trans
   timer.tick( ms_since_last_tick );
   if ( timer.is_timeout() && !buffer_.empty() ) {
     transmit( buffer_.front() );
-    timer.double_RTO();
-    timer.set_ms_since_begining( 0 );
     cnt_consecutive_retx_++;
+    timer.set_ms_since_begining( 0 );
+    if ( !is_zero_win_ )
+      timer.double_RTO();
   }
 }

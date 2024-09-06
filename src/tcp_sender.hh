@@ -73,5 +73,6 @@ private:
   uint64_t window_size_ { 1 };
   bool sent_syn_ {};
   bool sent_fin_ {};
+  bool is_zero_win_ {};
   std::queue<TCPSenderMessage> buffer_ {};
 };
