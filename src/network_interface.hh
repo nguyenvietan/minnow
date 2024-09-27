@@ -81,4 +81,8 @@ private:
 
   // Datagrams that have been received
   std::queue<InternetDatagram> datagrams_received_ {};
+
+  auto make_arp( uint16_t, const EthernetAddress&, uint32_t ) const noexcept -> ARPMessage;
+
+    using AddressNumeric = decltype( ip_address_.ipv4_numeric() );
 };

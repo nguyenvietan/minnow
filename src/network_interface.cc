@@ -6,6 +6,19 @@
 
 using namespace std;
 
+auto NetworkInterface::make_arp( const uint16_t opcode,
+                                 const EthernetAddress& target_ethernet_address,
+                                 const uint32_t target_ip_address ) const noexcept -> ARPMessage
+{
+  ARPMessage arp;
+  arp.opcode = opcode;
+  arp.sender_ethernet_address = ethernet_address_;
+  arp.sender_ip_address = ip_address_.ipv4_numeric();
+  arp.target_ethernet_address = target_ethernet_address;
+  arp.target_ip_address = target_ip_address;
+  return arp;
+}
+
 //! \param[in] ethernet_address Ethernet (what ARP calls "hardware") address of the interface
 //! \param[in] ip_address IP (what ARP calls "protocol") address of the interface
 NetworkInterface::NetworkInterface( string_view name,
@@ -27,9 +40,12 @@ NetworkInterface::NetworkInterface( string_view name,
 //! can be converted to a uint32_t (raw 32-bit IP address) by using the Address::ipv4_numeric() method.
 void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Address& next_hop )
 {
-  // Your code here.
   (void)dgram;
-  (void)next_hop;
+
+  const AddressNumeric next_hop_numeric { next_hop.ipv4_numeric() };
+
+  const ARPMessage arp_request { make_arp( ARPMessage::OPCODE_REQUEST, {}, next_hop_numeric ) };
+  transmit( { { ETHERNET_BROADCAST, ethernet_address_, EthernetHeader::TYPE_ARP }, serialize( arp_request ) } );
 }
 
 //! \param[in] frame the incoming Ethernet frame
