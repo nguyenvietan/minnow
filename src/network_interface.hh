@@ -1,6 +1,7 @@
 #pragma once
 
 #include <queue>
+#include <unordered_map>
 
 #include "address.hh"
 #include "ethernet_frame.hh"
@@ -81,4 +82,15 @@ private:
 
   // Datagrams that have been received
   std::queue<InternetDatagram> datagrams_received_ {};
+
+  auto make_arp( uint16_t, const EthernetAddress&, uint32_t ) const noexcept -> ARPMessage;
+
+  using AddressNumeric = decltype( ip_address_.ipv4_numeric() );
+
+  std::unordered_map<uint32_t, std::pair<EthernetAddress, size_t>> ip_2_eth_ {};
+  std::unordered_map<uint32_t, IPv4Datagram> ip_2_datagram_ {};
+  size_t ms_ {};
+  std::unordered_map<uint32_t, size_t> ip_2_timestamp_ {};
+  static constexpr size_t ARP_REPLY_TTL_ms_ = 5000;
+  static constexpr size_t ARP_CACHE_TTL_ms = 30000;
 };
