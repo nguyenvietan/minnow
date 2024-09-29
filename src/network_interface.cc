@@ -44,15 +44,41 @@ void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Addre
 
   const AddressNumeric next_hop_numeric { next_hop.ipv4_numeric() };
 
-  const ARPMessage arp_request { make_arp( ARPMessage::OPCODE_REQUEST, {}, next_hop_numeric ) };
-  transmit( { { ETHERNET_BROADCAST, ethernet_address_, EthernetHeader::TYPE_ARP }, serialize( arp_request ) } );
+  auto it = ip_2_eth_.find( next_hop_numeric );
+  if ( it == ip_2_eth_.end() ) {
+    const ARPMessage arp_request { make_arp( ARPMessage::OPCODE_REQUEST, {}, next_hop_numeric ) };
+    ip_2_datagram_[next_hop_numeric] = dgram;
+    transmit( { { ETHERNET_BROADCAST, ethernet_address_, EthernetHeader::TYPE_ARP }, serialize( arp_request ) } );
+  } else {
+    transmit( { ethernet_address_, it->second, EthernetHeader::TYPE_IPv4, serialize( dgram ) } );
+  }
 }
 
 //! \param[in] frame the incoming Ethernet frame
 void NetworkInterface::recv_frame( const EthernetFrame& frame )
 {
-  // Your code here.
-  (void)frame;
+  if ( frame.header.dst != ethernet_address_ )
+    return;
+
+  IPv4Datagram ipv4_dgram;
+  if ( parse( ipv4_dgram, frame.payload ) ) {
+    datagrams_received_.emplace( ipv4_dgram );
+    return;
+  }
+
+  ARPMessage arp_msg;
+  if ( not parse( arp_msg, frame.payload ) )
+    return;
+  if ( arp_msg.opcode == ARPMessage::OPCODE_REPLY ) {
+    ip_2_eth_[arp_msg.sender_ip_address] = arp_msg.sender_ethernet_address;
+    auto it = ip_2_datagram_.find( arp_msg.sender_ip_address );
+    if ( it != ip_2_datagram_.end() ) {
+      transmit( { arp_msg.sender_ethernet_address,
+                  ethernet_address_,
+                  EthernetHeader::TYPE_IPv4,
+                  serialize( it->second ) } );
+    }
+  }
 }
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
