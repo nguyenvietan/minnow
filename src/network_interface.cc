@@ -57,7 +57,7 @@ void NetworkInterface::send_datagram( const InternetDatagram& dgram, const Addre
 //! \param[in] frame the incoming Ethernet frame
 void NetworkInterface::recv_frame( const EthernetFrame& frame )
 {
-  if ( frame.header.dst != ethernet_address_ )
+  if ( frame.header.dst != ETHERNET_BROADCAST && frame.header.dst != ethernet_address_ )
     return;
 
   IPv4Datagram ipv4_dgram;
@@ -77,6 +77,15 @@ void NetworkInterface::recv_frame( const EthernetFrame& frame )
                   ethernet_address_,
                   EthernetHeader::TYPE_IPv4,
                   serialize( it->second ) } );
+    }
+  } else if ( arp_msg.opcode == ARPMessage::OPCODE_REQUEST ) {
+    if ( arp_msg.target_ip_address == ip_address_.ipv4_numeric() ) {
+      const ARPMessage arp_msg_reply
+        = make_arp( ARPMessage::OPCODE_REPLY, arp_msg.sender_ethernet_address, arp_msg.sender_ip_address );
+      transmit( { arp_msg.sender_ethernet_address,
+                  ethernet_address_,
+                  EthernetHeader::TYPE_ARP,
+                  serialize( arp_msg_reply ) } );
     }
   }
 }
