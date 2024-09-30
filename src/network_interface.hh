@@ -87,6 +87,10 @@ private:
 
   using AddressNumeric = decltype( ip_address_.ipv4_numeric() );
 
-  std::unordered_map<uint32_t, EthernetAddress> ip_2_eth_ {};
+  std::unordered_map<uint32_t, std::pair<EthernetAddress, size_t>> ip_2_eth_ {};
   std::unordered_map<uint32_t, IPv4Datagram> ip_2_datagram_ {};
+  size_t ms_ {};
+  std::unordered_map<uint32_t, size_t> ip_2_timestamp_ {};
+  static constexpr size_t ARP_REPLY_TTL_ms_ = 5000;
+  static constexpr size_t ARP_CACHE_TTL_ms = 30000;
 };
