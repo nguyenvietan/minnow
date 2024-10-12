@@ -35,4 +35,7 @@ public:
 private:
   // The router's collection of network interfaces
   std::vector<std::shared_ptr<NetworkInterface>> _interfaces {};
+  using info = std::pair<size_t, std::optional<Address>>;
+  std::array<std::unordered_map<uint32_t, info>, 32> routing_table_ {};
+  std::optional<info> match( uint32_t ip );
 };

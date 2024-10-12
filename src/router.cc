@@ -19,12 +19,43 @@ void Router::add_route( const uint32_t route_prefix,
   cerr << "DEBUG: adding route " << Address::from_ipv4_numeric( route_prefix ).ip() << "/"
        << static_cast<int>( prefix_length ) << " => " << ( next_hop.has_value() ? next_hop->ip() : "(direct)" )
        << " on interface " << interface_num << "\n";
-
-  // Your code here.
+  routing_table_[prefix_length][route_prefix] = { interface_num, next_hop };
 }
 
 // Go through all the interfaces, and route every incoming datagram to its proper outgoing interface.
 void Router::route()
 {
-  // Your code here.
+  for ( const auto& interface : _interfaces ) {
+    auto&& datagram_received { interface->datagrams_received() };
+    while ( not datagram_received.empty() ) {
+      auto datagram { move( datagram_received.front() ) };
+      datagram_received.pop();
+      if ( datagram.header.ttl <= 1 ) {
+        continue;
+      }
+      datagram.header.ttl -= 1;
+      datagram.header.compute_checksum();
+
+      const auto& mp { match( datagram.header.dst ) };
+      if ( not mp.has_value() ) {
+        continue;
+      }
+      const auto& [num, next_hop] { mp.value() };
+      _interfaces[num]->send_datagram( datagram,
+                                       next_hop.value_or( Address::from_ipv4_numeric( datagram.header.dst ) ) );
+    }
+  }
+}
+
+std::optional<Router::info> Router::match( uint32_t ip_addr )
+{
+  for ( int prefix_length = 31; prefix_length >= 0; prefix_length-- ) {
+    auto m = routing_table_[prefix_length];
+    uint32_t mask = ~(uint32_t)( ( static_cast<uint64_t>( 1 ) << ( 32 - prefix_length ) ) - 1 );
+    auto it = m.find( mask & ip_addr );
+    if ( it != m.end() ) {
+      return it->second;
+    }
+  }
+  return {};
 }
